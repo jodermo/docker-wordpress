@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wordpress
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./plugins:/var/www/html/wp-content/plugins
+      - ./example-data:/tmp/example-data
+    depends_on:
+      - db
+    command: >
+      sh -c "
+        sleep 20 &&
+        wp core install --url=localhost:8080 --title='Example Site' --admin_user=admin --admin_password=admin --admin_email=admin@example.com &&
+        wp plugin install wordpress-importer --activate &&
+        wp import /tmp/example-data/theme-unittestdata.xml --authors=create &&
+        docker-entrypoint.sh apache2-foreground
+      "
+
+  db:
+    image: mysql:5.7
+    container_name: wordpress_db
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - ./db_data:/var/lib/mysql
+
+volumes:
+  wordpress_data:
